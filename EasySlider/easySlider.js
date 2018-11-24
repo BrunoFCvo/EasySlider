@@ -1,4 +1,8 @@
-function EasySlider(target, options) {
+function EasySlider(target, args) {
+
+    let options = {
+        threshold : 100
+    }
 
     let slider = target;
     let wrapper = target.querySelector(".slider-wrapper");
@@ -6,11 +10,11 @@ function EasySlider(target, options) {
 
     let curX = 0;
     let width = slides[0].clientWidth;
-    let nrSlides = slides.length;
 
     // DRAGGING EVENTS
 
     let startX = 0;
+    let initialX = 0;
     let dragging = false;
 
     if(document.documentMode || /Edge/.test(navigator.userAgent) || /MSIE/.test(navigator.userAgent)) {
@@ -31,9 +35,12 @@ function EasySlider(target, options) {
         e.stopPropagation();
         e.preventDefault();
 
+        clearAnimation();
+
         let pageX = e.pageX || e.touches[0].pageX;
         
-        startX = pageX - curX;
+        startX = pageX + curX;
+        initialX = curX;
         dragging = true;
     }
 
@@ -44,38 +51,63 @@ function EasySlider(target, options) {
 
         let pageX = e.pageX || e.touches[0].pageX;
 
-        translate(pageX - startX);
+        translate(startX - pageX);
     }
 
     function end(e) {
         e.stopPropagation();
         e.preventDefault();
 
-        let nextSlide = Math.round(curX / width);
-        if(nextSlide > 0) { 
-            nextSlide = 0;
-        } else if(nextSlide < -(nrSlides - 1)) {
-            nextSlide = -(nrSlides - 1);
+        let moved = curX - initialX;
+        
+        if(moved > options.threshold) {
+            let slide   = Math.floor((curX + options.threshold) / width);
+            let next    = (slide + 1) < slides.length ? slide + 1 : slide;
+            let x       = next * width;
+            animate(x);
+        } else if (-moved > options.threshold) {
+            let slide   = Math.floor((curX - options.threshold) / width);
+            let next    = slide > 0 ? slide : 0;
+            let x       = next * width;
+            animate(x);
+        } else {
+            let slide   = Math.floor(curX / width);
+            let x       = slide * width;
+            animate(x);
         }
 
-        animate(nextSlide * width);
         dragging = false;
     }
 
 
     // AUX FUNCTIONS
 
+    let timeout = null;
+
     function translate(x) {
         curX = x;
-        wrapper.style.transform = "translate3d("+curX+"px,0,0)";
+        wrapper.style.transform = "translate3d("+(-curX)+"px,0,0)";
     }
 
     function animate(x) {
-        wrapper.style.transition = "transform 500ms ease-out";
-        wrapper.style.transform = "translate3d("+x+"px,0,0)";
-        setTimeout(function() {
+        wrapper.style.transition    = "transform 500ms ease-out";
+        wrapper.style.transform     = "translate3d("+(-x)+"px,0,0)";
+        timeout = setTimeout(function() {
             wrapper.style.transition = "";
             curX = x;
         }, 500);
+    }
+
+    function clearAnimation() {
+        if(!timeout) return;
+        clearTimeout(timeout);
+        timeout = null;
+        
+        let computedStyle 	= window.getComputedStyle(wrapper).transform;
+        let regExp 			= new RegExp("matrix\\(1, 0, 0, 1, (.*), 0\\)");
+        let x			    = -parseInt(regExp.exec(computedStyle)[1]);
+        translate(x);
+        
+        wrapper.style.transition = "";
     }
 }
