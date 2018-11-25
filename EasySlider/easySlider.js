@@ -59,6 +59,7 @@ function EasySlider(target, args) {
         e.preventDefault();
 
         let moved = curX - initialX;
+        let width = slides[0].clientWidth;
         
         if(moved > options.threshold) {
             let slide   = Math.floor((curX + options.threshold) / width);
@@ -71,7 +72,7 @@ function EasySlider(target, args) {
             let x       = next * width;
             animate(x);
         } else {
-            let slide   = Math.floor(curX / width);
+            let slide   = Math.round(curX / width);
             let x       = slide * width;
             animate(x);
         }
